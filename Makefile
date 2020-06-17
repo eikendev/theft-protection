@@ -2,11 +2,11 @@
 
 .PHONY: build
 build:
-	arduino --verify --board arduino:avr:nano:cpu=atmega328old --verbose main.ino
+	arduino --verify --board arduino:avr:nano:cpu=atmega328old --verbose theft-protection/theft-protection.ino
 
 .PHONY: install
 install:
-	arduino --upload --board arduino:avr:nano:cpu=atmega328old --port /dev/ttyUSB0 --verbose main.ino
+	arduino --upload --board arduino:avr:nano:cpu=atmega328old --port /dev/ttyUSB0 --verbose theft-protection/theft-protection.ino
 
 .PHONY: monitor
 monitor:
