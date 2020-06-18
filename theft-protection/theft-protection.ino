@@ -3,27 +3,25 @@
 
 #include <MFRC522.h>
 
+#include "alarm.hpp"
 #include "settings.hpp"
-#include "mpu6050.hpp"
 
 #define ACCEL_DIFF(a, b) (abs(a - b))
 #define ACCEL_TRIGGERS(a, b) (ACCEL_DIFF(a, b) > ACCEL_MAX_DELTA)
 
-#define ALARM_DISABLE digitalWrite(ALARM_PIN, LOW)
-#define ALARM_ENABLE digitalWrite(ALARM_PIN, HIGH)
-
-MFRC522 mfrc522(SS_PIN, RST_PIN);
+static bool is_armed = false;
 
 static const uint8_t tag01[] = {TAG01_UID};
 
-static bool is_armed = false;
-
 static union accel_t_gyro_union data_old;
+
+static MFRC522 mfrc522(SS_PIN, RST_PIN);
+
+static Alarm alarm;
 
 void setup(void)
 {
-    pinMode(ALARM_PIN, OUTPUT);
-    ALARM_DISABLE;
+    alarm.begin();
 
     Serial.begin(BAUDE_RATE);
     Serial.println(F("Starting theft protection."));
@@ -62,14 +60,6 @@ static bool do_trigger_alarm(
     return false;
 }
 
-static void trigger_buzz(void)
-{
-    ALARM_ENABLE;
-    delay(ALARM_TIMEOUT);
-    ALARM_DISABLE;
-    delay(ALARM_TIMEOUT);
-}
-
 static bool is_authorized(
     byte *buffer,
     byte size
@@ -104,15 +94,15 @@ static void serve_alarm(void)
     // Check if an authorized NFC tag is present.
     if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
         if (is_authorized(mfrc522.uid.uidByte, mfrc522.uid.size)) {
-            ALARM_DISABLE;
+            alarm.disable();
             delay(ALARM_TIMEOUT);
 
             // Unlocking gives a single buzz, locking a double buzz.
             if (is_armed) {
-                trigger_buzz();
+                alarm.buzz();
             } else {
-                trigger_buzz();
-                trigger_buzz();
+                alarm.buzz();
+                alarm.buzz();
             }
 
             is_armed = !is_armed;
@@ -124,7 +114,7 @@ static void serve_alarm(void)
 
     // Start the alarm if jerk indicates movement.
     if (is_armed && do_trigger_alarm(&data_new, &data_old)) {
-        ALARM_ENABLE;
+        alarm.enable();
     }
 
     memcpy(&data_old, &data_new, sizeof(data_old));
