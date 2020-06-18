@@ -4,20 +4,18 @@
 #include <MFRC522.h>
 
 #include "alarm.hpp"
+#include "detector.hpp"
 #include "settings.hpp"
-
-#define ACCEL_DIFF(a, b) (abs(a - b))
-#define ACCEL_TRIGGERS(a, b) (ACCEL_DIFF(a, b) > ACCEL_MAX_DELTA)
 
 static bool is_armed = false;
 
 static const uint8_t tag01[] = {TAG01_UID};
 
-static union accel_t_gyro_union data_old;
-
 static MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 static Alarm alarm;
+
+static Detector detector;
 
 void setup(void)
 {
@@ -33,31 +31,7 @@ void setup(void)
 
     Wire.begin();
 
-    // Clear the 'sleep' bit to start the sensor.
-    mpu6050_write_reg(MPU6050_PWR_MGMT_1, 0);
-}
-
-static void print_accel_diff(
-    accel_t_gyro_union *current,
-    accel_t_gyro_union *old
-) {
-    Serial.println(F("Difference in acceleration is:"));
-    Serial.println(ACCEL_DIFF(current->value.x_accel, old->value.x_accel));
-    Serial.println(ACCEL_DIFF(current->value.y_accel, old->value.y_accel));
-    Serial.println(ACCEL_DIFF(current->value.z_accel, old->value.z_accel));
-}
-
-static bool do_trigger_alarm(
-    accel_t_gyro_union *current,
-    accel_t_gyro_union *old
-) {
-    if (ACCEL_TRIGGERS(current->value.x_accel, old->value.x_accel) ||
-        ACCEL_TRIGGERS(current->value.y_accel, old->value.y_accel) ||
-        ACCEL_TRIGGERS(current->value.z_accel, old->value.z_accel)) {
-        return true;
-    }
-
-    return false;
+    detector.begin();
 }
 
 static bool is_authorized(
@@ -73,23 +47,7 @@ static bool is_authorized(
 
 static void serve_alarm(void)
 {
-    int error;
-    union accel_t_gyro_union data_new;
-
-    // Read new values from the accelerometer.
-    error = mpu6050_read(
-        MPU6050_ACCEL_XOUT_H,
-        (uint8_t *) &data_new,
-        sizeof(data_new)
-    );
-    if (error != 0) {
-        Serial.print(F("Error while reading: "));
-        Serial.println(error, DEC);
-        return;
-    }
-
-    // Swap the high and low registers for the new values.
-    mpu6050_swap_registers(&data_new);
+    detector.serve();
 
     // Check if an authorized NFC tag is present.
     if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
@@ -110,14 +68,12 @@ static void serve_alarm(void)
         }
     }
 
-    print_accel_diff(&data_new, &data_old);
+    detector.print_state();
 
     // Start the alarm if jerk indicates movement.
-    if (is_armed && do_trigger_alarm(&data_new, &data_old)) {
+    if (is_armed && detector.is_triggered()) {
         alarm.enable();
     }
-
-    memcpy(&data_old, &data_new, sizeof(data_old));
 }
 
 void loop(void)
