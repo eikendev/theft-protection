@@ -1,19 +1,16 @@
 #include <SPI.h>
 #include <Wire.h>
 
-#include <MFRC522.h>
-
 #include "alarm.hpp"
+#include "authorizer.hpp"
 #include "detector.hpp"
 #include "settings.hpp"
 
 static bool is_armed = false;
 
-static const uint8_t tag01[] = {TAG01_UID};
-
-static MFRC522 mfrc522(SS_PIN, RST_PIN);
-
 static Alarm alarm;
+
+static Authorizer authorizer;
 
 static Detector detector;
 
@@ -26,46 +23,29 @@ void setup(void)
 
     SPI.begin();
 
-    mfrc522.PCD_Init();
-    delay(4);
+    authorizer.begin();
 
     Wire.begin();
 
     detector.begin();
 }
 
-static bool is_authorized(
-    byte *buffer,
-    byte size
-) {
-    if (size == sizeof(tag01) && memcmp(buffer, tag01, size) == 0) {
-        return true;
-    }
-
-    return false;
-}
-
 static void serve_alarm(void)
 {
-    detector.serve();
+    if (authorizer.is_authorized_nearby()) {
+        alarm.disable();
+        delay(ALARM_TIMEOUT);
 
-    // Check if an authorized NFC tag is present.
-    if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
-        if (is_authorized(mfrc522.uid.uidByte, mfrc522.uid.size)) {
-            alarm.disable();
-            delay(ALARM_TIMEOUT);
-
-            // Unlocking gives a single buzz, locking a double buzz.
-            if (is_armed) {
-                alarm.buzz();
-            } else {
-                alarm.buzz();
-                alarm.buzz();
-            }
-
-            is_armed = !is_armed;
-            delay(UNLOCK_TIMEOUT);
+        // Unlocking gives a single buzz, locking a double buzz.
+        if (is_armed) {
+            alarm.buzz();
+        } else {
+            alarm.buzz();
+            alarm.buzz();
         }
+
+        is_armed = !is_armed;
+        delay(UNLOCK_TIMEOUT);
     }
 
     detector.print_state();
@@ -78,6 +58,8 @@ static void serve_alarm(void)
 
 void loop(void)
 {
+    detector.serve();
+
     serve_alarm();
 
     delay(LOOP_DELAY);
