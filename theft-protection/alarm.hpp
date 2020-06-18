@@ -3,8 +3,6 @@
 
 #include <Arduino.h>
 
-#include "mpu6050.hpp"
-
 class Alarm {
     private:
 
