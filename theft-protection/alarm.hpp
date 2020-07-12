@@ -4,18 +4,17 @@
 #include <Arduino.h>
 
 class Alarm {
-    private:
+  private:
+  public:
+    Alarm(void);
 
-    public:
-        Alarm(void);
+    void begin(void);
 
-        void begin(void);
+    void enable(void);
 
-        void enable(void);
+    void disable(void);
 
-        void disable(void);
-
-        void buzz(void);
+    void buzz(void);
 };
 
 #endif

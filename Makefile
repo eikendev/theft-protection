@@ -11,3 +11,20 @@ install:
 .PHONY: monitor
 monitor:
 	minicom -b 9600 -D /dev/ttyUSB0
+
+.PHONY: format
+format:
+	find -type f \( -name '*.cpp' -o -name '*.hpp' \) -print0 | xargs -0 --max-args=1 --max-procs=8 clang-format -i
+
+.PHONY: tags
+tags:
+	ctags -R \
+		--sort=yes \
+		--totals=yes \
+		--languages=C++ \
+		--extra=+f \
+		${DIR_SRC}
+
+.PHONY: clean
+clean:
+	rm -f ./tags
