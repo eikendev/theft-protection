@@ -14,8 +14,7 @@ static Authorizer authorizer;
 
 static Detector detector;
 
-void setup(void)
-{
+void setup(void) {
     alarm.begin();
 
     Serial.begin(BAUDE_RATE);
@@ -30,8 +29,7 @@ void setup(void)
     detector.begin();
 }
 
-static void serve_alarm(void)
-{
+static void serve_alarm(void) {
     if (authorizer.is_authorized_nearby()) {
         alarm.disable();
         delay(ALARM_TIMEOUT);
@@ -56,8 +54,7 @@ static void serve_alarm(void)
     }
 }
 
-void loop(void)
-{
+void loop(void) {
     detector.serve();
 
     serve_alarm();

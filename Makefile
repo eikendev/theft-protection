@@ -16,7 +16,7 @@ monitor:
 
 .PHONY: format
 format:
-	find -type f \( -name '*.cpp' -o -name '*.hpp' \) -print0 | xargs -0 --max-args=1 --max-procs=8 clang-format -i
+	find -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.ino' \) -print0 | xargs -0 --max-args=1 --max-procs=8 clang-format -i
 
 .PHONY: tags
 tags:
