@@ -1,5 +1,7 @@
 # SEE https://github.com/arduino/Arduino/blob/master/build/shared/manpage.adoc
 
+DIR_SRC := ./theft-protection
+
 .PHONY: build
 build:
 	arduino --verify --board arduino:avr:nano:cpu=atmega328old --verbose theft-protection/theft-protection.ino
